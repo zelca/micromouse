@@ -64,6 +64,18 @@ class Simulator(object):
                 print 'Error initializing simulator; disabled.\n{}: {}'.format(e.__class__.__name__, e)
 
     def render(self, robot_pos):
+        """
+        Renders maze and robot if game is initialized.
+        Rendering can be interrupted by close button.
+        """
+
+        # check for quit event
+        if self.game:
+            for event in self.game.event.get():
+                if self.game and event.type == self.game.QUIT:
+                    self.game = None
+
+        # draw environment
         if self.game:
             # clear screen
             self.screen.fill(self.maze_color)
@@ -109,6 +121,10 @@ class Simulator(object):
             self.game.time.wait(self.frame_delay)
 
     def render_robot(self, robot_pos):
+        """
+        Calculates robots points and draws triangle.
+        """
+
         init = self.transform(robot_pos['location'][0] + 1, robot_pos['location'][1] + 1)
         center = init[0] - int(.5 * self.block_size), init[1] - int(.5 * self.block_size)
         points = []
@@ -118,4 +134,8 @@ class Simulator(object):
         self.game.draw.lines(self.screen, self.robot_color, True, points, self.line_width)
 
     def transform(self, x, y):
+        """
+        Transforms maze coordinates to canvas coordinates.
+        """
+
         return x * (self.block_size + self.line_width), y * (self.block_size + self.line_width)
