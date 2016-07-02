@@ -60,9 +60,8 @@ class Maze(object):
     def is_permissible(self, cell, direction):
         """
         Returns a boolean designating whether or not a cell is passable in the
-        given direction. Cell is input as a list. Directions may be
-        input as single letter 'u', 'r', 'd', 'l', or complete words 'up', 
-        'right', 'down', 'left'.
+        given direction. Cell is input as a list. Directions mast be input as
+        complete words 'up', 'right', 'down', 'left'.
         """
 
         dir_int = {'up': 1, 'right': 2, 'down': 4, 'left': 8}
@@ -75,8 +74,7 @@ class Maze(object):
         """
         Returns a number designating the number of open cells to the nearest
         wall in the indicated direction. Cell is input as a list. Directions
-        may be input as a single letter 'u', 'r', 'd', 'l', or complete words
-        'up', 'right', 'down', 'left'.
+        must be input as complete words 'up', 'right', 'down', 'left'.
         """
 
         dir_move = {'up': [0, 1], 'right': [1, 0], 'down': [0, -1], 'left': [-1, 0]}

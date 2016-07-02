@@ -1,6 +1,6 @@
 import sys
 from maze import Maze
-from robot import Robot
+from robot_random import RobotRandom
 from simulator import Simulator
 
 # global dictionaries for robot movement and sensing
@@ -11,7 +11,7 @@ dir_reverse = {'up': 'down', 'right': 'left', 'down': 'up', 'left': 'right'}
 
 # test and score parameters
 max_time = 1000
-train_score_mult = 1 / 30.
+train_score_ratio = 1 / 30.
 
 if __name__ == '__main__':
     '''
@@ -23,11 +23,13 @@ if __name__ == '__main__':
     testmaze = Maze(str(sys.argv[1]))
 
     # initialize a robot; robot receives info about maze dimensions.
-    testrobot = Robot(testmaze.dim)
+    testrobot = {
+        "random": RobotRandom(testmaze.dim)
+    }[str(sys.argv[2])]
 
     # create a simulator to display maze and robot movements.
     # set delay to None to disable simulator.
-    simulator = Simulator(testmaze, delay=.5)
+    simulator = Simulator(testmaze, testrobot, delay=.5)
 
     # record robot performance over two runs.
     runtimes = []
@@ -42,9 +44,6 @@ if __name__ == '__main__':
         run_active = True
         hit_goal = False
         while run_active:
-            # render simulator
-            simulator.render(robot_pos)
-
             # check for end of time
             total_time += 1
             if total_time > max_time:
@@ -70,6 +69,9 @@ if __name__ == '__main__':
                 else:
                     print 'Cannot reset on runs after the first.'
                     continue
+
+            # render simulator before robot position is updated
+            simulator.render(robot_pos)
 
             # perform rotation
             if rotation == -90:
@@ -115,4 +117,4 @@ if __name__ == '__main__':
 
     # report score if robot is successful.
     if len(runtimes) == 2:
-        print 'Task complete! Score: {:4.3f}'.format(runtimes[1] + train_score_mult * runtimes[0])
+        print 'Task complete! Score: {:4.3f}'.format(runtimes[1] + train_score_ratio * runtimes[0])
