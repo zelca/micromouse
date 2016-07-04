@@ -1,6 +1,3 @@
-import random
-
-
 class Robot(object):
     def __init__(self, maze_dim):
         """
@@ -10,9 +7,13 @@ class Robot(object):
         the robot is placed in.
         """
 
-        self.location = [0, 0]
         self.heading = 'up'
+        self.location = [0, 0]
+        self.goal = [maze_dim / 2 - 1, maze_dim / 2]
+        self.sensors = None
         self.maze_dim = maze_dim
+        self.info = [['>' for _ in range(maze_dim)] for _ in range(maze_dim)]
+        self.visited = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
 
     def next_move(self, sensors):
         """
@@ -32,11 +33,8 @@ class Robot(object):
         is ignored.
 
         If the robot wants to end a run (e.g. during the first training run in
-        the maze) then returing the tuple ('Reset', 'Reset') will indicate to
+        the maze) then returning the tuple ('Reset', 'Reset') will indicate to
         the tester to end the run and return the robot to the start.
         """
 
-        rotation = random.choice([-90, 0, 90])
-        movement = random.choice(range(-3, 3))
-
-        return rotation, movement
+        raise NotImplementedError()
