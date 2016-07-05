@@ -6,6 +6,8 @@ class Robot(object):
 
     dir_move = {'up': [0, 1], 'right': [1, 0], 'down': [0, -1], 'left': [-1, 0]}
 
+    dir_reverse = {'up': 'down', 'right': 'left', 'down': 'up', 'left': 'right'}
+
     dir_rotation = {'up': ['left', 'up', 'right'], 'right': ['up', 'right', 'down'],
                     'down': ['right', 'down', 'left'], 'left': ['down', 'left', 'up']}
 
@@ -22,10 +24,10 @@ class Robot(object):
         self.action = None
         self.sensors = None
 
-        self.goal = [maze_dim / 2 - 1, maze_dim / 2]
         self.maze_dim = maze_dim
-        self.info = [[' ' for _ in range(maze_dim)] for _ in range(maze_dim)]
-        self.visited = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
+        self.goal = [maze_dim / 2 - 1, maze_dim / 2]
+        self.walls = [[{} for _ in range(maze_dim)] for _ in range(maze_dim)]
+        self.policy = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
 
     def next_move(self, sensors):
         """
@@ -49,9 +51,13 @@ class Robot(object):
         the tester to end the run and return the robot to the start.
         """
 
-        self.localize()
+        self.update_state()
 
         self.sensors = sensors
+
+        self.update_walls()
+
+        self.update_policy()
 
         rotation, movement = self.next_action()
 
@@ -59,7 +65,7 @@ class Robot(object):
 
         return self.rotations[rotation], movement
 
-    def localize(self):
+    def update_state(self):
         """
         Updates robot heading and location, based on rotation, movement and
         current sensors values. Localization is skipped if no pending action.
@@ -80,13 +86,49 @@ class Robot(object):
 
         # update position
         move = self.dir_move[self.heading]
-        x, y = self.location
-        x += movement * move[0]
-        y += movement * move[1]
-        self.location = [x, y]
-        self.visited[x][y] = True
+        self.location[0] += movement * move[0]
+        self.location[1] += movement * move[1]
 
         return movement
+
+    def update_walls(self):
+        """
+        Updates information about known walls.
+        """
+
+        for s in range(len(self.sensors)):
+            heading = self.dir_rotation[self.heading][s]
+            x, y = self.location
+            move = self.dir_move[heading]
+            for i in range(self.sensors[s]):
+                self.walls[x][y][heading] = False
+                x += move[0]
+                y += move[1]
+            self.walls[x][y][heading] = True
+
+    def update_policy(self):
+        self.policy = [[None for _ in range(self.maze_dim)] for _ in range(self.maze_dim)]
+
+        value = [[999 for _ in range(self.maze_dim)] for _ in range(self.maze_dim)]
+        value[self.goal[0]][self.goal[1]] = 0
+
+        open = [[self.goal[0], self.goal[1]]]
+        while len(open) > 0:
+            next = open.pop()
+            x = next[0]
+            y = next[1]
+            step = value[x][y]
+            for dir, move in self.dir_move.iteritems():
+                x2 = x + move[0]
+                y2 = y + move[1]
+                step2 = step + 1
+                if self.is_valid_move(dir, x, y, x2, y2) and step2 < value[x2][y2]:
+                    open.append([x2, y2])
+                    value[x2][y2] = step2
+                    self.policy[x2][y2] = self.dir_reverse[dir]
+
+    def is_valid_move(self, dir, x, y, x2, y2):
+        return 0 <= x2 < self.maze_dim and 0 <= y2 < self.maze_dim
 
     def next_action(self):
         rotation = random.choice([0, 1, 2])

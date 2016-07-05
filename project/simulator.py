@@ -26,7 +26,7 @@ class Simulator(object):
 
     maze_color = colors['white']
 
-    info_color = colors['orange']
+    policy_color = colors['cyan']
 
     robot_color = colors['blue']
 
@@ -38,7 +38,7 @@ class Simulator(object):
 
     hidden_wall_color = colors['gray']
 
-    visited_wall_color = colors['black']
+    known_wall_color = colors['black']
 
     robot_shape = {
         'up': [(-.2, -.4), (0, .4), (.2, -.4)],
@@ -48,6 +48,8 @@ class Simulator(object):
     }
 
     directions = ['up', 'left', 'down', 'right']
+
+    direction_label = {'up': 'v', 'right': '>', 'down': '^', 'left': '<'}
 
     def __init__(self, maze, robot, delay=None):
         self.maze = maze
@@ -121,8 +123,8 @@ class Simulator(object):
         """
 
         x, y = self.robot.location
-        heading = self.robot.heading
         center = self.center(x, y)
+        heading = self.robot.heading
         points = []
         for p in self.robot_shape[heading]:
             points.append((center[0] + p[0] * self.block_size, center[1] + p[1] * self.block_size))
@@ -136,18 +138,17 @@ class Simulator(object):
 
         for x in range(self.maze.dim):
             for y in range(self.maze.dim):
-                # info
-                info = self.robot.info[x][y]
-                if info:
+                # policy
+                if self.robot.policy[x][y]:
                     center = self.center(x, y)
-                    info = self.font.render(info, 1, self.info_color)
-                    self.screen.blit(info, [center[0] - info.get_width() / 2, center[1] - info.get_height() / 2])
+                    policy = self.robot.policy[x][y]
+                    label = self.font.render(self.direction_label[policy], 1, self.policy_color)
+                    self.screen.blit(label, [center[0] - label.get_width() / 2, center[1] - label.get_height() / 2])
 
-                # visited wall
-                if self.robot.visited[x][y]:
-                    for d in self.directions:
-                        if not self.maze.is_permissible([x, y], d):
-                            self.render_wall(x, y, d, self.visited_wall_color)
+                # known wall
+                for d in self.directions:
+                    if self.robot.walls[x][y].get(d, None):
+                        self.render_wall(x, y, d, self.known_wall_color)
 
         sensors = self.robot.sensors
         if sensors and len(sensors) == 3:
