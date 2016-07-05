@@ -1,3 +1,6 @@
+import random
+
+
 class Robot(object):
     rotations = [-90, 0, 90]
 
@@ -8,15 +11,16 @@ class Robot(object):
 
     def __init__(self, maze_dim):
         """
-        Use the initialization function to set up attributes that your robot
-        will use to learn and navigate the maze. Some initial attributes are
-        provided based on common information, including the size of the maze
-        the robot is placed in.
+        Sets up attributes that a robot will use to learn and navigate the
+        maze. Some initial attributes are provided based on common information,
+        including the size of the maze the robot is placed in.
         """
 
         self.heading = 'up'
-        self.sensors = None
         self.location = [0, 0]
+
+        self.action = None
+        self.sensors = None
 
         self.goal = [maze_dim / 2 - 1, maze_dim / 2]
         self.maze_dim = maze_dim
@@ -25,10 +29,10 @@ class Robot(object):
 
     def next_move(self, sensors):
         """
-        Use this function to determine the next move the robot should make,
-        based on the input from the sensors after its previous move. Sensor
-        inputs are a list of three distances from the robot's left, front, and
-        right-facing sensors, in that order.
+        Determines the next move the robot should make, based on the input
+        from the sensors after its previous move. Sensor inputs are a list
+        of three distances from the robot's left, front, and right-facing
+        sensors, in that order.
 
         Outputs should be a tuple of two values. The first value indicates
         robot rotation (if any), as a number: 0 for no rotation, +90 for a
@@ -45,29 +49,47 @@ class Robot(object):
         the tester to end the run and return the robot to the start.
         """
 
-        x, y = self.location
-        self.visited[x][y] = True
+        self.localize()
+
         self.sensors = sensors
-        rotation, movement = self.next_action(sensors)
+
+        rotation, movement = self.next_action()
+
+        self.action = rotation, movement
+
         return self.rotations[rotation], movement
 
-    def next_action(self, sensors):
-        raise NotImplementedError()
+    def localize(self):
+        """
+        Updates robot heading and location, based on rotation, movement and
+        current sensors values. Localization is skipped if no pending action.
+        """
 
-    def update_state(self, action):
-        rotation, movement = action
-        sensor = self.sensors[rotation]
+        if not self.action:
+            return
+
+        rotation, movement = self.action
 
         # update heading
         self.heading = self.dir_rotation[self.heading][rotation]
 
         # check for wall
+        sensor = self.sensors[rotation]
         if sensor < movement:
             movement = sensor
 
         # update position
         move = self.dir_move[self.heading]
-        self.location[0] += movement * move[0]
-        self.location[1] += movement * move[1]
+        x, y = self.location
+        x += movement * move[0]
+        y += movement * move[1]
+        self.location = [x, y]
+        self.visited[x][y] = True
 
         return movement
+
+    def next_action(self):
+        rotation = random.choice([0, 1, 2])
+        movement = 1  # random.choice(range(0, 3))
+
+        return rotation, movement

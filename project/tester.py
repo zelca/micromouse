@@ -1,7 +1,6 @@
 import sys
 from maze import Maze
-from robot_ml import RobotML
-from robot_random import RobotRandom
+from robot import Robot
 from simulator import Simulator
 
 # global dictionaries for robot movement and sensing
@@ -24,10 +23,7 @@ if __name__ == '__main__':
     testmaze = Maze(str(sys.argv[1]))
 
     # initialize a robot; robot receives info about maze dimensions.
-    testrobot = {
-        "ml": RobotML(testmaze.dim),
-        "random": RobotRandom(testmaze.dim)
-    }[str(sys.argv[2])]
+    testrobot = Robot(testmaze.dim)
 
     # create a simulator to display maze and robot movements.
     # set delay to None to disable simulator.
@@ -53,6 +49,9 @@ if __name__ == '__main__':
                 print 'Allotted time exceeded.'
                 break
 
+            # render simulator
+            simulator.render()
+
             # provide robot with sensor information, get actions
             sensing = [testmaze.dist_to_wall(robot_pos['location'], heading)
                        for heading in dir_sensors[robot_pos['heading']]]
@@ -71,9 +70,6 @@ if __name__ == '__main__':
                 else:
                     print 'Cannot reset on runs after the first.'
                     continue
-
-            # render simulator before robot position is updated
-            simulator.render(robot_pos)
 
             # perform rotation
             if rotation == -90:

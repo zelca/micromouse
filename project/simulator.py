@@ -72,7 +72,7 @@ class Simulator(object):
                 self.game = None
                 print 'Error initializing simulator; disabled.\n{}: {}'.format(e.__class__.__name__, e)
 
-    def render(self, robot_pos):
+    def render(self):
         """
         Renders maze and robot if game is initialized.
         Rendering can be interrupted by close button.
@@ -104,10 +104,10 @@ class Simulator(object):
             self.game.draw.rect(self.screen, self.finish_color, self.finish, self.line_width)
 
             # draw robot additional info
-            self.render_robot_info(self.robot, robot_pos)
+            self.render_robot_info()
 
             # draw robot pos
-            self.render_robot_pos(robot_pos)
+            self.render_robot_shape()
 
             # replace buffer
             self.game.display.flip()
@@ -115,21 +115,21 @@ class Simulator(object):
             # apply frame delay
             self.game.time.wait(self.frame_delay)
 
-    def render_robot_pos(self, robot_pos):
+    def render_robot_shape(self):
         """
         Calculates robots points and draws robot's triangle.
         """
 
-        x = robot_pos['location'][0]
-        y = robot_pos['location'][1]
+        x, y = self.robot.location
+        heading = self.robot.heading
         center = self.center(x, y)
         points = []
-        for p in self.robot_shape[robot_pos['heading']]:
+        for p in self.robot_shape[heading]:
             points.append((center[0] + p[0] * self.block_size, center[1] + p[1] * self.block_size))
 
         self.game.draw.lines(self.screen, self.robot_color, True, points, self.line_width)
 
-    def render_robot_info(self, robot, robot_pos):
+    def render_robot_info(self):
         """
         Renders robot's additional info like sensors etc.
         """
@@ -137,36 +137,38 @@ class Simulator(object):
         for x in range(self.maze.dim):
             for y in range(self.maze.dim):
                 # info
-                if robot.info[x][y]:
+                info = self.robot.info[x][y]
+                if info:
                     center = self.center(x, y)
-                    info = self.font.render(robot.info[x][y], 1, self.info_color)
+                    info = self.font.render(info, 1, self.info_color)
                     self.screen.blit(info, [center[0] - info.get_width() / 2, center[1] - info.get_height() / 2])
 
                 # visited wall
-                if robot.visited[x][y]:
+                if self.robot.visited[x][y]:
                     for d in self.directions:
                         if not self.maze.is_permissible([x, y], d):
                             self.render_wall(x, y, d, self.visited_wall_color)
 
-        if robot.sensors and len(robot.sensors) == 3:
-            x = robot_pos['location'][0]
-            y = robot_pos['location'][1]
-            if robot_pos['heading'] == 'up':
-                self.render_wall(x - robot.sensors[0], y, 'left', self.sensor_color)
-                self.render_wall(x, y + robot.sensors[1], 'up', self.sensor_color)
-                self.render_wall(x + robot.sensors[2], y, 'right', self.sensor_color)
-            elif robot_pos['heading'] == 'left':
-                self.render_wall(x, y + robot.sensors[2], 'up', self.sensor_color)
-                self.render_wall(x - robot.sensors[1], y, 'left', self.sensor_color)
-                self.render_wall(x, y - robot.sensors[0], 'down', self.sensor_color)
-            elif robot_pos['heading'] == 'down':
-                self.render_wall(x - robot.sensors[2], y, 'left', self.sensor_color)
-                self.render_wall(x, y - robot.sensors[1], 'down', self.sensor_color)
-                self.render_wall(x + robot.sensors[0], y, 'right', self.sensor_color)
-            elif robot_pos['heading'] == 'right':
-                self.render_wall(x, y + robot.sensors[0], 'up', self.sensor_color)
-                self.render_wall(x + robot.sensors[1], y, 'right', self.sensor_color)
-                self.render_wall(x, y - robot.sensors[2], 'down', self.sensor_color)
+        sensors = self.robot.sensors
+        if sensors and len(sensors) == 3:
+            x, y = self.robot.location
+            heading = self.robot.heading
+            if heading == 'up':
+                self.render_wall(x - sensors[0], y, 'left', self.sensor_color)
+                self.render_wall(x, y + sensors[1], 'up', self.sensor_color)
+                self.render_wall(x + sensors[2], y, 'right', self.sensor_color)
+            elif heading == 'left':
+                self.render_wall(x, y + sensors[2], 'up', self.sensor_color)
+                self.render_wall(x - sensors[1], y, 'left', self.sensor_color)
+                self.render_wall(x, y - sensors[0], 'down', self.sensor_color)
+            elif heading == 'down':
+                self.render_wall(x - sensors[2], y, 'left', self.sensor_color)
+                self.render_wall(x, y - sensors[1], 'down', self.sensor_color)
+                self.render_wall(x + sensors[0], y, 'right', self.sensor_color)
+            elif heading == 'right':
+                self.render_wall(x, y + sensors[0], 'up', self.sensor_color)
+                self.render_wall(x + sensors[1], y, 'right', self.sensor_color)
+                self.render_wall(x, y - sensors[2], 'down', self.sensor_color)
 
     def render_wall(self, x, y, direction, color):
         """
