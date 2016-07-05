@@ -78,11 +78,6 @@ class Simulator(object):
         Rendering can be interrupted by close button.
         """
 
-        # TODO move to robot
-        x = robot_pos['location'][0]
-        y = robot_pos['location'][1]
-        self.robot.visited[x][y] = 1
-
         # check for quit event
         if self.game:
             for event in self.game.event.get():

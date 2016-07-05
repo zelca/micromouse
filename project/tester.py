@@ -1,5 +1,6 @@
 import sys
 from maze import Maze
+from robot_ml import RobotML
 from robot_random import RobotRandom
 from simulator import Simulator
 
@@ -24,6 +25,7 @@ if __name__ == '__main__':
 
     # initialize a robot; robot receives info about maze dimensions.
     testrobot = {
+        "ml": RobotML(testmaze.dim),
         "random": RobotRandom(testmaze.dim)
     }[str(sys.argv[2])]
 

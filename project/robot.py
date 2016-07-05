@@ -1,4 +1,11 @@
 class Robot(object):
+    rotations = [-90, 0, 90]
+
+    dir_move = {'up': [0, 1], 'right': [1, 0], 'down': [0, -1], 'left': [-1, 0]}
+
+    dir_rotation = {'up': ['left', 'up', 'right'], 'right': ['up', 'right', 'down'],
+                    'down': ['right', 'down', 'left'], 'left': ['down', 'left', 'up']}
+
     def __init__(self, maze_dim):
         """
         Use the initialization function to set up attributes that your robot
@@ -8,11 +15,12 @@ class Robot(object):
         """
 
         self.heading = 'up'
-        self.location = [0, 0]
-        self.goal = [maze_dim / 2 - 1, maze_dim / 2]
         self.sensors = None
+        self.location = [0, 0]
+
+        self.goal = [maze_dim / 2 - 1, maze_dim / 2]
         self.maze_dim = maze_dim
-        self.info = [['>' for _ in range(maze_dim)] for _ in range(maze_dim)]
+        self.info = [[' ' for _ in range(maze_dim)] for _ in range(maze_dim)]
         self.visited = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
 
     def next_move(self, sensors):
@@ -37,4 +45,29 @@ class Robot(object):
         the tester to end the run and return the robot to the start.
         """
 
+        x, y = self.location
+        self.visited[x][y] = True
+        self.sensors = sensors
+        rotation, movement = self.next_action(sensors)
+        return self.rotations[rotation], movement
+
+    def next_action(self, sensors):
         raise NotImplementedError()
+
+    def update_state(self, action):
+        rotation, movement = action
+        sensor = self.sensors[rotation]
+
+        # update heading
+        self.heading = self.dir_rotation[self.heading][rotation]
+
+        # check for wall
+        if sensor < movement:
+            movement = sensor
+
+        # update position
+        move = self.dir_move[self.heading]
+        self.location[0] += movement * move[0]
+        self.location[1] += movement * move[1]
+
+        return movement
