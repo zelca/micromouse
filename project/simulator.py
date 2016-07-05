@@ -40,6 +40,11 @@ class Simulator(object):
 
     known_wall_color = colors['black']
 
+    dir_label = {'up': 'v',
+                 'right': '>',
+                 'down': '^',
+                 'left': '<'}
+
     robot_shape = {
         'up': [(-.2, -.4), (0, .4), (.2, -.4)],
         'left': [(-.4, 0), (.4, .2), (.4, -.2)],
@@ -47,15 +52,11 @@ class Simulator(object):
         'right': [(.4, 0), (-.4, .2), (-.4, -.2)],
     }
 
-    directions = ['up', 'left', 'down', 'right']
-
-    direction_label = {'up': 'v', 'right': '>', 'down': '^', 'left': '<'}
-
     def __init__(self, maze, robot, delay=None):
         self.maze = maze
         self.robot = robot
 
-        start_center = self.center(robot.location[0], robot.location[1])
+        start_center = self.center(robot.start[0], robot.start[1])
         self.start = [start_center[0], start_center[1], int(.3 * self.block_size)]
 
         finish_center = self.center(robot.goal[0], robot.goal[1])
@@ -96,9 +97,9 @@ class Simulator(object):
             # iterate through squares one by one to decide where to draw walls
             for x in range(self.maze.dim):
                 for y in range(self.maze.dim):
-                    for d in self.directions:
-                        if not self.maze.is_permissible([x, y], d):
-                            self.render_wall(x, y, d, self.hidden_wall_color)
+                    for dir in self.dir_label:
+                        if not self.maze.is_permissible([x, y], dir):
+                            self.render_wall(x, y, dir, self.hidden_wall_color)
 
             # draw start and finish
             self.game.draw.circle(self.screen, self.start_color,
@@ -142,34 +143,13 @@ class Simulator(object):
                 if self.robot.policy[x][y]:
                     center = self.center(x, y)
                     policy = self.robot.policy[x][y]
-                    label = self.font.render(self.direction_label[policy], 1, self.policy_color)
+                    label = self.font.render(self.dir_label[policy], 1, self.policy_color)
                     self.screen.blit(label, [center[0] - label.get_width() / 2, center[1] - label.get_height() / 2])
 
-                # known wall
-                for d in self.directions:
-                    if self.robot.walls[x][y].get(d, None):
-                        self.render_wall(x, y, d, self.known_wall_color)
-
-        sensors = self.robot.sensors
-        if sensors and len(sensors) == 3:
-            x, y = self.robot.location
-            heading = self.robot.heading
-            if heading == 'up':
-                self.render_wall(x - sensors[0], y, 'left', self.sensor_color)
-                self.render_wall(x, y + sensors[1], 'up', self.sensor_color)
-                self.render_wall(x + sensors[2], y, 'right', self.sensor_color)
-            elif heading == 'left':
-                self.render_wall(x, y + sensors[2], 'up', self.sensor_color)
-                self.render_wall(x - sensors[1], y, 'left', self.sensor_color)
-                self.render_wall(x, y - sensors[0], 'down', self.sensor_color)
-            elif heading == 'down':
-                self.render_wall(x - sensors[2], y, 'left', self.sensor_color)
-                self.render_wall(x, y - sensors[1], 'down', self.sensor_color)
-                self.render_wall(x + sensors[0], y, 'right', self.sensor_color)
-            elif heading == 'right':
-                self.render_wall(x, y + sensors[0], 'up', self.sensor_color)
-                self.render_wall(x + sensors[1], y, 'right', self.sensor_color)
-                self.render_wall(x, y - sensors[2], 'down', self.sensor_color)
+                # walls
+                for dir in self.dir_label:
+                    if self.robot.walls[x][y].get(dir, None):
+                        self.render_wall(x, y, dir, self.known_wall_color)
 
     def render_wall(self, x, y, direction, color):
         """
