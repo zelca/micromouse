@@ -2,6 +2,7 @@ import sys
 from maze import Maze
 from robot import Robot
 from simulator import Simulator
+from policy import estimate_score
 
 # global dictionaries for robot movement and sensing
 dir_sensors = {'up': ['left', 'up', 'right'], 'right': ['up', 'right', 'down'],
@@ -21,13 +22,19 @@ if __name__ == '__main__':
 
     # create a maze based on input argument on command line.
     testmaze = Maze(str(sys.argv[1]))
+    init_bounds = [0, 0]
+    goal_bounds = [testmaze.dim / 2 - 1, testmaze.dim / 2]
 
     # initialize a robot; robot receives info about maze dimensions.
-    testrobot = Robot(testmaze.dim)
+    testrobot = Robot(testmaze.dim, init_bounds, goal_bounds)
 
     # create a simulator to display maze and robot movements.
     # set delay to None to disable simulator.
     simulator = Simulator(testmaze, testrobot, delay=.1, show_maze=False)
+
+    # print estimated score
+    best_score, worst_score = estimate_score(testmaze, init_bounds, goal_bounds)
+    print "Estimated score is between {:4.3f} and {:4.3f}".format(best_score, worst_score)
 
     # record robot performance over two runs.
     runtimes = []
@@ -37,7 +44,7 @@ if __name__ == '__main__':
 
         # set the robot in the start position. Note that robot position
         # parameters are independent of the robot itself.
-        robot_pos = {'location': [0, 0], 'heading': 'up'}
+        robot_pos = {'location': [init_bounds[0], init_bounds[1]], 'heading': 'up'}
 
         run_active = True
         hit_goal = False
@@ -49,13 +56,13 @@ if __name__ == '__main__':
                 print 'Allotted time exceeded.'
                 break
 
-            # render simulator
-            simulator.render()
-
             # provide robot with sensor information, get actions
             sensing = [testmaze.dist_to_wall(robot_pos['location'], heading)
                        for heading in dir_sensors[robot_pos['heading']]]
             rotation, movement = testrobot.next_move(sensing)
+
+            # render simulator
+            simulator.render()
 
             # check for a reset
             if (rotation, movement) == ('Reset', 'Reset'):
@@ -105,7 +112,6 @@ if __name__ == '__main__':
                         movement = 0
 
             # check for goal entered
-            goal_bounds = [testmaze.dim / 2 - 1, testmaze.dim / 2]
             if robot_pos['location'][0] in goal_bounds and robot_pos['location'][1] in goal_bounds:
                 hit_goal = True
                 if run != 0:

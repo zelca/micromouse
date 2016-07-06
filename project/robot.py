@@ -1,51 +1,34 @@
-rotations = [-90, 0, 90]
-
-dir_move = {'up': [0, 1],
-            'right': [1, 0],
-            'down': [0, -1],
-            'left': [-1, 0]}
-
-dir_reverse = {'up': 'down',
-               'right': 'left',
-               'down': 'up',
-               'left': 'right'}
-
-dir_rotation = {'up': ['left', 'up', 'right'],
-                'right': ['up', 'right', 'down'],
-                'down': ['right', 'down', 'left'],
-                'left': ['down', 'left', 'up']}
+from policy import *
 
 
 class Robot(object):
-    def __init__(self, maze_dim):
+    def __init__(self, maze_dim, init, finish):
         """
         Sets up attributes that a robot will use to learn and navigate the
         maze. Some initial attributes are provided based on common information,
         including the size of the maze the robot is placed in.
         """
 
-        self.start = [0, 0]
-        self.goal = [maze_dim / 2 - 1, maze_dim / 2]
+        self.init = init
+        self.goal = finish
 
-        self.maze = Maze(maze_dim, [0, 0])
+        self.solution = []
+        self.maze = Maze(maze_dim)
         self.policy = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
 
+        # start exploring
+        self.mode = 'exploring'
         self.heading = 'up'
-        self.location = [self.start[0], self.start[1]]
-        self.sensors = None
-        self.rotation = None
-        self.movement = None
+        self.location = [self.init[0], self.init[1]]
 
-    def reset(self):
+    def start_testing(self):
         """
-        Resets the robot to the initial state.
+        Resets to initial position for testing run.
         """
 
+        self.mode = 'testing'
         self.heading = 'up'
-        self.location = [self.start[0], self.start[1]]
-        self.sensors = None
-        self.rotation = None
-        self.movement = None
+        self.location = [self.init[0], self.init[1]]
 
     def next_move(self, sensors):
         """
@@ -69,17 +52,35 @@ class Robot(object):
         the tester to end the run and return the robot to the start.
         """
 
-        self.update_state()
+        if self.mode == 'exploring' and self.location == self.goal:
+            self.mode = 'connecting'
 
-        self.sensors = sensors
+        if self.update_maze(sensors):
+            solution_policy = compute_policy(self.maze, self.goal)
+            self.solution = compute_path(solution_policy, self.init)
+            if self.mode == 'connecting':
+                unknown = self.first_unknown(self.solution)
+                if unknown:
+                    self.policy = compute_policy(self.maze, unknown)
+                else:
+                    self.policy = solution_policy
+                    self.start_testing()
+                    return 'Reset', 'Reset'
+            else:
+                self.policy = solution_policy
 
-        self.update_maze()
+        rotation, movement = self.next_action()
 
-        self.policy = self.calc_policy(self.goal)
+        self.update_state(sensors, rotation, movement)
 
-        self.rotation, self.movement = self.next_action()
+        return rotations[rotation], movement
 
-        return rotations[self.rotation], self.movement
+    def first_unknown(self, solution):
+        for cell in reversed(solution):
+            if not self.maze.is_known(cell):
+                return cell
+
+        return None
 
     def next_action(self):
         """
@@ -88,83 +89,53 @@ class Robot(object):
         """
 
         x, y = self.location
-        heading = self.policy[x][y]
+        heading, movement, _ = self.policy[x][y]
 
-        if not heading:
-            return 0, 0
-
-        if self.heading == dir_reverse[heading]:
-            heading = self.heading
-            movement = -1
-        else:
+        if self.mode == "exploring":
             movement = 1
 
-        rotation = dir_rotation[self.heading].index(heading)
+        if self.heading == heading_reverse[heading]:
+            movement *= -1
+            heading = self.heading
+
+        rotation = heading_rotation[self.heading].index(heading)
 
         return rotation, movement
 
-    def update_state(self):
+    def update_state(self, sensors, rotation, movement):
         """
         Updates robot heading and location, based on rotation, movement and
         current sensors values. Localization is skipped if no pending action.
         """
 
-        if not self.sensors:
-            return
-
         # update heading
-        self.heading = dir_rotation[self.heading][self.rotation]
+        self.heading = heading_rotation[self.heading][rotation]
 
         # check for wall
-        movement = min(self.sensors[self.rotation], self.movement)
+        movement = min(sensors[rotation], movement)
 
         # update position
-        move = dir_move[self.heading]
+        move = heading_move[self.heading]
         self.location[0] += movement * move[0]
         self.location[1] += movement * move[1]
 
-    def update_maze(self):
+    def update_maze(self, sensors):
         """
         Updates information about known walls.
+        Returns true if maze data was updated.
         """
-
-        for s in range(len(self.sensors)):
-            heading = dir_rotation[self.heading][s]
+        updated = False
+        for s in range(len(sensors)):
+            heading = heading_rotation[self.heading][s]
             x, y = self.location
-            move = dir_move[heading]
-            for i in range(self.sensors[s]):
-                self.maze.set_wall(x, y, heading, False)
+            move = heading_move[heading]
+            for i in range(sensors[s]):
+                updated |= self.maze.set_wall([x, y], heading, False)
                 x += move[0]
                 y += move[1]
-            self.maze.set_wall(x, y, heading, True)
+            updated |= self.maze.set_wall([x, y], heading, True)
 
-    def calc_policy(self, goal):
-        """
-        Build optimal policy to reach the goal, based on known walls.
-        """
-
-        value = [[999 for _ in range(self.maze.dim)] for _ in range(self.maze.dim)]
-        value[goal[0]][goal[1]] = 0
-
-        policy = [[None for _ in range(self.maze.dim)] for _ in range(self.maze.dim)]
-
-        open = [(goal[0], goal[1])]
-        while len(open) > 0:
-            next = open.pop()
-            x = next[0]
-            y = next[1]
-            step = value[x][y]
-            for dir, move in dir_move.iteritems():
-                if not self.maze.has_wall(x, y, dir):
-                    x2 = x + move[0]
-                    y2 = y + move[1]
-                    step2 = step + 1
-                    if step2 < value[x2][y2]:
-                        open.append((x2, y2))
-                        value[x2][y2] = step2
-                        policy[x2][y2] = dir_reverse[dir]
-
-        return policy
+        return updated
 
 
 class Maze(object):
@@ -173,21 +144,37 @@ class Maze(object):
     Holds information about borders and spotted walls.
     """
 
-    def __init__(self, dim, start):
+    def __init__(self, dim):
         self.dim = dim
         self.walls = {}
+        self.walls_dim = 2 * (dim - 1)
 
-    def set_wall(self, x, y, dir, is_wall):
-        move = dir_move[dir]
-        x_ = 2 * x + move[0]
-        y_ = 2 * y + move[1]
-        self.walls[x_, y_] = is_wall
+    def set_wall(self, cell, heading, is_wall):
+        updated = False
+        move = heading_move[heading]
+        x_ = 2 * cell[0] + move[0]
+        y_ = 2 * cell[1] + move[1]
+        if not (x_, y_) in self.walls:
+            self.walls[x_, y_] = is_wall
+            updated = True
 
-    def has_wall(self, x, y, dir):
-        move = dir_move[dir]
-        x_ = 2 * x + move[0]
-        y_ = 2 * y + move[1]
-        return self.is_border(x_, y_) or self.walls.get((x_, y_), None)
+        return updated
 
-    def is_border(self, x, y):
-        return x < 0 or x > 2 * (self.dim - 1) or y < 0 or y > 2 * (self.dim - 1)
+    def is_known(self, cell):
+        for heading in heading_move:
+            move = heading_move[heading]
+            x_ = 2 * cell[0] + move[0]
+            y_ = 2 * cell[1] + move[1]
+            if self.in_bound(x_, y_) and not (x_, y_) in self.walls:
+                return False
+
+        return True
+
+    def is_permissible(self, cell, heading):
+        move = heading_move[heading]
+        x_ = 2 * cell[0] + move[0]
+        y_ = 2 * cell[1] + move[1]
+        return self.in_bound(x_, y_) and not self.walls.get((x_, y_), None)
+
+    def in_bound(self, x, y):
+        return 0 <= x <= self.walls_dim and 0 <= y <= self.walls_dim
