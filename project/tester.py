@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     # create a simulator to display maze and robot movements.
     # set delay to None to disable simulator.
-    simulator = Simulator(testmaze, testrobot, delay=.1)
+    simulator = Simulator(testmaze, testrobot, delay=.1, show_maze=False)
 
     # record robot performance over two runs.
     runtimes = []

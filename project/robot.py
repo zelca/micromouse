@@ -1,21 +1,22 @@
+rotations = [-90, 0, 90]
+
+dir_move = {'up': [0, 1],
+            'right': [1, 0],
+            'down': [0, -1],
+            'left': [-1, 0]}
+
+dir_reverse = {'up': 'down',
+               'right': 'left',
+               'down': 'up',
+               'left': 'right'}
+
+dir_rotation = {'up': ['left', 'up', 'right'],
+                'right': ['up', 'right', 'down'],
+                'down': ['right', 'down', 'left'],
+                'left': ['down', 'left', 'up']}
+
+
 class Robot(object):
-    rotations = [-90, 0, 90]
-
-    dir_move = {'up': [0, 1],
-                'right': [1, 0],
-                'down': [0, -1],
-                'left': [-1, 0]}
-
-    dir_reverse = {'up': 'down',
-                   'right': 'left',
-                   'down': 'up',
-                   'left': 'right'}
-
-    dir_rotation = {'up': ['left', 'up', 'right'],
-                    'right': ['up', 'right', 'down'],
-                    'down': ['right', 'down', 'left'],
-                    'left': ['down', 'left', 'up']}
-
     def __init__(self, maze_dim):
         """
         Sets up attributes that a robot will use to learn and navigate the
@@ -23,18 +24,28 @@ class Robot(object):
         including the size of the maze the robot is placed in.
         """
 
-        self.heading = 'up'
-        self.location = [0, 0]
+        self.start = [0, 0]
+        self.goal = [maze_dim / 2 - 1, maze_dim / 2]
 
+        self.maze = Maze(maze_dim, [0, 0])
+        self.policy = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
+
+        self.heading = 'up'
+        self.location = [self.start[0], self.start[1]]
         self.sensors = None
         self.rotation = None
         self.movement = None
 
-        self.maze_dim = maze_dim
-        self.goal = [maze_dim / 2 - 1, maze_dim / 2]
-        self.start = [self.location[0], self.location[1]]
-        self.walls = [[{} for _ in range(maze_dim)] for _ in range(maze_dim)]
-        self.policy = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
+    def reset(self):
+        """
+        Resets the robot to the initial state.
+        """
+
+        self.heading = 'up'
+        self.location = [self.start[0], self.start[1]]
+        self.sensors = None
+        self.rotation = None
+        self.movement = None
 
     def next_move(self, sensors):
         """
@@ -62,28 +73,33 @@ class Robot(object):
 
         self.sensors = sensors
 
-        self.update_walls()
+        self.update_maze()
 
         self.policy = self.calc_policy(self.goal)
 
         self.rotation, self.movement = self.next_action()
 
-        return self.rotations[self.rotation], self.movement
+        return rotations[self.rotation], self.movement
 
     def next_action(self):
+        """
+        Chooses next rotation and movement, based on optimal policy, current
+        heading and location of the robot.
+        """
+
         x, y = self.location
         heading = self.policy[x][y]
 
         if not heading:
             return 0, 0
 
-        if self.heading == self.dir_reverse[heading]:
+        if self.heading == dir_reverse[heading]:
             heading = self.heading
             movement = -1
         else:
             movement = 1
 
-        rotation = self.dir_rotation[self.heading].index(heading)
+        rotation = dir_rotation[self.heading].index(heading)
 
         return rotation, movement
 
@@ -97,42 +113,40 @@ class Robot(object):
             return
 
         # update heading
-        self.heading = self.dir_rotation[self.heading][self.rotation]
+        self.heading = dir_rotation[self.heading][self.rotation]
 
         # check for wall
         movement = min(self.sensors[self.rotation], self.movement)
 
         # update position
-        move = self.dir_move[self.heading]
+        move = dir_move[self.heading]
         self.location[0] += movement * move[0]
         self.location[1] += movement * move[1]
 
-    def update_walls(self):
+    def update_maze(self):
         """
         Updates information about known walls.
         """
 
         for s in range(len(self.sensors)):
-            heading = self.dir_rotation[self.heading][s]
+            heading = dir_rotation[self.heading][s]
             x, y = self.location
-            move = self.dir_move[heading]
-            reverse_heading = self.dir_reverse[heading]
+            move = dir_move[heading]
             for i in range(self.sensors[s]):
-                self.walls[x][y][heading] = False
+                self.maze.set_wall(x, y, heading, False)
                 x += move[0]
                 y += move[1]
-                self.walls[x][y][reverse_heading] = False
-            self.walls[x][y][heading] = True
-            x += move[0]
-            y += move[1]
-            if 0 <= x < self.maze_dim and 0 <= y < self.maze_dim:
-                self.walls[x][y][reverse_heading] = True
+            self.maze.set_wall(x, y, heading, True)
 
     def calc_policy(self, goal):
-        value = [[999 for _ in range(self.maze_dim)] for _ in range(self.maze_dim)]
+        """
+        Build optimal policy to reach the goal, based on known walls.
+        """
+
+        value = [[999 for _ in range(self.maze.dim)] for _ in range(self.maze.dim)]
         value[goal[0]][goal[1]] = 0
 
-        policy = [[None for _ in range(self.maze_dim)] for _ in range(self.maze_dim)]
+        policy = [[None for _ in range(self.maze.dim)] for _ in range(self.maze.dim)]
 
         open = [(goal[0], goal[1])]
         while len(open) > 0:
@@ -140,14 +154,40 @@ class Robot(object):
             x = next[0]
             y = next[1]
             step = value[x][y]
-            for dir, move in self.dir_move.iteritems():
-                if not self.walls[x][y].get(dir, None):
+            for dir, move in dir_move.iteritems():
+                if not self.maze.has_wall(x, y, dir):
                     x2 = x + move[0]
                     y2 = y + move[1]
                     step2 = step + 1
-                    if 0 <= x2 < self.maze_dim and 0 <= y2 < self.maze_dim and step2 < value[x2][y2]:
+                    if step2 < value[x2][y2]:
                         open.append((x2, y2))
                         value[x2][y2] = step2
-                        policy[x2][y2] = self.dir_reverse[dir]
+                        policy[x2][y2] = dir_reverse[dir]
 
         return policy
+
+
+class Maze(object):
+    """
+    Internal robot's representation of the maze.
+    Holds information about borders and spotted walls.
+    """
+
+    def __init__(self, dim, start):
+        self.dim = dim
+        self.walls = {}
+
+    def set_wall(self, x, y, dir, is_wall):
+        move = dir_move[dir]
+        x_ = 2 * x + move[0]
+        y_ = 2 * y + move[1]
+        self.walls[x_, y_] = is_wall
+
+    def has_wall(self, x, y, dir):
+        move = dir_move[dir]
+        x_ = 2 * x + move[0]
+        y_ = 2 * y + move[1]
+        return self.is_border(x_, y_) or self.walls.get((x_, y_), None)
+
+    def is_border(self, x, y):
+        return x < 0 or x > 2 * (self.dim - 1) or y < 0 or y > 2 * (self.dim - 1)

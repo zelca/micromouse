@@ -52,16 +52,10 @@ class Simulator(object):
         'right': [(.4, 0), (-.4, .2), (-.4, -.2)],
     }
 
-    def __init__(self, maze, robot, delay=None):
+    def __init__(self, maze, robot, delay=None, show_maze=None):
         self.maze = maze
         self.robot = robot
-
-        start_center = self.center(robot.start[0], robot.start[1])
-        self.start = [start_center[0], start_center[1], int(.3 * self.block_size)]
-
-        finish_center = self.center(robot.goal[0], robot.goal[1])
-        finish_point = finish_center[0] - .3 * self.block_size, finish_center[1] - .3 * self.block_size
-        self.finish = [finish_point[0], finish_point[1], .6 * self.block_size, .6 * self.block_size]
+        self.show_maze = show_maze
 
         if delay:
             try:
@@ -93,18 +87,12 @@ class Simulator(object):
             # clear screen
             self.screen.fill(self.maze_color)
 
-            # draw maze
-            # iterate through squares one by one to decide where to draw walls
-            for x in range(self.maze.dim):
-                for y in range(self.maze.dim):
-                    for dir in self.dir_label:
-                        if not self.maze.is_permissible([x, y], dir):
-                            self.render_wall(x, y, dir, self.hidden_wall_color)
+            # draw maze if show_maze is set to True
+            if self.show_maze:
+                self.render_maze()
 
             # draw start and finish
-            self.game.draw.circle(self.screen, self.start_color,
-                                  (self.start[0], self.start[1]), self.start[2], self.line_width)
-            self.game.draw.rect(self.screen, self.finish_color, self.finish, self.line_width)
+            self.render_start_goal()
 
             # draw robot additional info
             self.render_robot_info()
@@ -117,6 +105,50 @@ class Simulator(object):
 
             # apply frame delay
             self.game.time.wait(self.frame_delay)
+
+    def render_maze(self):
+        """
+        Iterates through squares one by one to decide where to draw walls.
+        """
+
+        for x in range(self.maze.dim):
+            for y in range(self.maze.dim):
+                for dir in self.dir_label:
+                    if not self.maze.is_permissible([x, y], dir):
+                        self.render_wall(x, y, dir, self.hidden_wall_color)
+
+    def render_start_goal(self):
+        """
+        Draw start and goal point taken from the robot.
+        """
+
+        start_center = self.center(self.robot.start[0], self.robot.start[1])
+        start_point, start_radius = [start_center[0], start_center[1]], int(.3 * self.block_size)
+        self.game.draw.circle(self.screen, self.start_color, start_point, start_radius, self.line_width)
+
+        finish_center = self.center(self.robot.goal[0], self.robot.goal[1])
+        finish_point = finish_center[0] - .3 * self.block_size, finish_center[1] - .3 * self.block_size
+        finish_point = [finish_point[0], finish_point[1], .6 * self.block_size, .6 * self.block_size]
+        self.game.draw.rect(self.screen, self.finish_color, finish_point, self.line_width)
+
+    def render_robot_info(self):
+        """
+        Draws robot's policy and spotted walls.
+        """
+
+        for x in range(self.maze.dim):
+            for y in range(self.maze.dim):
+                # policy
+                if self.robot.policy[x][y]:
+                    center = self.center(x, y)
+                    policy = self.robot.policy[x][y]
+                    label = self.font.render(self.dir_label[policy], 1, self.policy_color)
+                    self.screen.blit(label, [center[0] - label.get_width() / 2, center[1] - label.get_height() / 2])
+
+                # walls
+                for dir in self.dir_label:
+                    if self.robot.maze.has_wall(x, y, dir):
+                        self.render_wall(x, y, dir, self.known_wall_color)
 
     def render_robot_shape(self):
         """
@@ -131,25 +163,6 @@ class Simulator(object):
             points.append((center[0] + p[0] * self.block_size, center[1] + p[1] * self.block_size))
 
         self.game.draw.lines(self.screen, self.robot_color, True, points, self.line_width)
-
-    def render_robot_info(self):
-        """
-        Renders robot's additional info like sensors etc.
-        """
-
-        for x in range(self.maze.dim):
-            for y in range(self.maze.dim):
-                # policy
-                if self.robot.policy[x][y]:
-                    center = self.center(x, y)
-                    policy = self.robot.policy[x][y]
-                    label = self.font.render(self.dir_label[policy], 1, self.policy_color)
-                    self.screen.blit(label, [center[0] - label.get_width() / 2, center[1] - label.get_height() / 2])
-
-                # walls
-                for dir in self.dir_label:
-                    if self.robot.walls[x][y].get(dir, None):
-                        self.render_wall(x, y, dir, self.known_wall_color)
 
     def render_wall(self, x, y, direction, color):
         """
