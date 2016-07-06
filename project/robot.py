@@ -21,15 +21,6 @@ class Robot(object):
         self.heading = 'up'
         self.location = [self.init[0], self.init[1]]
 
-    def start_testing(self):
-        """
-        Resets to initial position for testing run.
-        """
-
-        self.mode = 'testing'
-        self.heading = 'up'
-        self.location = [self.init[0], self.init[1]]
-
     def next_move(self, sensors):
         """
         Determines the next move the robot should make, based on the input
@@ -56,43 +47,34 @@ class Robot(object):
             self.mode = 'connecting'
 
         if self.update_maze(sensors):
-            solution_policy = compute_policy(self.maze, self.goal)
-            self.solution = compute_path(solution_policy, self.init)
-            if self.mode == 'connecting':
-                unknown = self.first_unknown(self.solution)
-                if unknown:
-                    self.policy = compute_policy(self.maze, unknown)
-                else:
-                    self.policy = solution_policy
-                    self.start_testing()
-                    return 'Reset', 'Reset'
-            else:
-                self.policy = solution_policy
+            self.policy = compute_policy(self.maze, self.goal)
+            self.solution = compute_path(self.policy, self.init)
 
-        rotation, movement = self.next_action()
+        if self.mode == 'connecting':
+            unvisited = self.last_unvisited(self.solution)
+            if unvisited:
+                unvisited_policy = compute_policy(self.maze, unvisited)
+                rotation, movement = self.next_action(unvisited_policy)
+            else:
+                self.mode = 'testing'
+                self.heading = 'up'
+                self.location = [self.init[0], self.init[1]]
+                return 'Reset', 'Reset'
+        else:
+            rotation, movement = self.next_action(self.policy)
 
         self.update_state(sensors, rotation, movement)
 
         return rotations[rotation], movement
 
-    def first_unknown(self, solution):
-        for cell in reversed(solution):
-            if not self.maze.is_known(cell):
-                return cell
-
-        return None
-
-    def next_action(self):
+    def next_action(self, policy):
         """
         Chooses next rotation and movement, based on optimal policy, current
         heading and location of the robot.
         """
 
         x, y = self.location
-        heading, movement, _ = self.policy[x][y]
-
-        if self.mode == "exploring":
-            movement = 1
+        heading, movement, _ = policy[x][y]
 
         if self.heading == heading_reverse[heading]:
             movement *= -1
@@ -137,6 +119,13 @@ class Robot(object):
 
         return updated
 
+    def last_unvisited(self, solution):
+        for cell in reversed(solution):
+            if not self.maze.is_visited(cell):
+                return cell
+
+        return None
+
 
 class Maze(object):
     """
@@ -160,7 +149,7 @@ class Maze(object):
 
         return updated
 
-    def is_known(self, cell):
+    def is_visited(self, cell):
         for heading in heading_move:
             move = heading_move[heading]
             x_ = 2 * cell[0] + move[0]

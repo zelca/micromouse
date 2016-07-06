@@ -59,6 +59,7 @@ class Simulator(object):
         self.robot = robot
         self.show_maze = show_maze
 
+        self.game = None
         if delay:
             try:
                 self.game = importlib.import_module('pygame')
@@ -68,7 +69,7 @@ class Simulator(object):
                 self.font = self.game.font.Font(None, 20)
                 self.frame_delay = max(1, int(delay * 1000))  # delay between frames in ms (min: 1)
             except Exception as e:
-                self.game = None
+
                 print 'Error initializing simulator; disabled.\n{}: {}'.format(e.__class__.__name__, e)
 
         # render initial state

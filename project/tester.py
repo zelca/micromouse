@@ -4,6 +4,10 @@ from robot import Robot
 from simulator import Simulator
 from policy import estimate_score
 
+# simulation parameters
+delay = .01
+show_maze = False
+
 # global dictionaries for robot movement and sensing
 dir_sensors = {'up': ['left', 'up', 'right'], 'right': ['up', 'right', 'down'],
                'down': ['right', 'down', 'left'], 'left': ['down', 'left', 'up']}
@@ -30,7 +34,7 @@ if __name__ == '__main__':
 
     # create a simulator to display maze and robot movements.
     # set delay to None to disable simulator.
-    simulator = Simulator(testmaze, testrobot, delay=.1, show_maze=False)
+    simulator = Simulator(testmaze, testrobot, delay=delay, show_maze=show_maze)
 
     # print estimated score
     best_score, worst_score = estimate_score(testmaze, init_bounds, goal_bounds)
