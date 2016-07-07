@@ -67,7 +67,7 @@ class Simulator(object):
                 size = maze.dim * self.block_size + (maze.dim + 1) * self.line_width
                 self.screen = self.game.display.set_mode((size, size))
                 self.font = self.game.font.Font(None, 20)
-                self.frame_delay = max(1, int(delay * 1000))  # delay between frames in ms (min: 1)
+                self.frame_delay = max(1, delay)  # delay between frames in ms (min: 1)
             except Exception as e:
 
                 print 'Error initializing simulator; disabled.\n{}: {}'.format(e.__class__.__name__, e)
