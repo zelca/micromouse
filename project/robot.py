@@ -16,7 +16,7 @@ class Robot(object):
         self.maze = Maze(maze_dim)
         self.policy = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
 
-        # start exploring
+        # start `exploring`
         self.mode = 'exploring'
         self.heading = 'up'
         self.location = [self.init[0], self.init[1]]
@@ -43,26 +43,35 @@ class Robot(object):
         the tester to end the run and return the robot to the start.
         """
 
+        # goal is reached in `exploring` phase, switch to `connecting` phase
         if self.mode == 'exploring' and self.location == self.goal:
             self.mode = 'connecting'
 
+        # update maze data, based on sensors
         if self.update_maze(sensors):
+            # update policy and solution if maze was updated
             self.policy = compute_policy(self.maze, self.goal)
             self.solution = compute_path(self.policy, self.init)
 
         if self.mode == 'connecting':
+            # during `connecting` phase robot visits all unvisited cells
+            # from the solution path and verifies that this path is optimal
             unvisited = self.last_unvisited(self.solution)
             if unvisited:
                 unvisited_policy = compute_policy(self.maze, unvisited)
                 rotation, movement = self.next_action(unvisited_policy)
             else:
+                # if there are no unvisited cells switch to `testing` phase
                 self.mode = 'testing'
                 self.heading = 'up'
                 self.location = [self.init[0], self.init[1]]
                 return 'Reset', 'Reset'
         else:
+            # during `exploring` and `testing` robot uses
+            # policy to reach the goal
             rotation, movement = self.next_action(self.policy)
 
+        # update internal state (heading, location) of a robot
         self.update_state(sensors, rotation, movement)
 
         return rotations[rotation], movement
@@ -71,6 +80,8 @@ class Robot(object):
         """
         Chooses next rotation and movement, based on optimal policy, current
         heading and location of the robot.
+        If new heading is reversed comparing to current robot doesn't rotate
+        and does negative movement.
         """
 
         x, y = self.location
@@ -103,9 +114,10 @@ class Robot(object):
 
     def update_maze(self, sensors):
         """
-        Updates information about known walls.
-        Returns true if maze data was updated.
+        Updates information about spotted walls.
+        Returns true if maze data is updated.
         """
+
         updated = False
         for s in range(len(sensors)):
             heading = heading_rotation[self.heading][s]
@@ -120,6 +132,11 @@ class Robot(object):
         return updated
 
     def last_unvisited(self, solution):
+        """
+        Finds the last unvisited cell from the solution path.
+        Returns None if all cells are visited.
+        """
+
         for cell in reversed(solution):
             if not self.maze.is_visited(cell):
                 return cell
@@ -139,6 +156,11 @@ class Maze(object):
         self.walls_dim = 2 * (dim - 1)
 
     def set_wall(self, cell, heading, is_wall):
+        """
+        Maps the cell coordinates to wall coordinates and stores
+        information about a presence of a wall in specific heading.
+        """
+
         updated = False
         move = heading_move[heading]
         x_ = 2 * cell[0] + move[0]
@@ -150,6 +172,11 @@ class Maze(object):
         return updated
 
     def is_visited(self, cell):
+        """
+        Maps the cell coordinates to wall coordinates and checks
+        if a presence of the walls for the specific cell is known.
+        """
+
         for heading in heading_move:
             move = heading_move[heading]
             x_ = 2 * cell[0] + move[0]
@@ -160,10 +187,19 @@ class Maze(object):
         return True
 
     def is_permissible(self, cell, heading):
+        """
+        Maps the cell coordinates to a wall coordinates and checks
+        if move in the specific heading is allowed.
+        """
+
         move = heading_move[heading]
         x_ = 2 * cell[0] + move[0]
         y_ = 2 * cell[1] + move[1]
         return self.in_bound(x_, y_) and not self.walls.get((x_, y_), None)
 
     def in_bound(self, x, y):
+        """
+        Checks if the wall coordinates are in the maze bounds.
+        """
+
         return 0 <= x <= self.walls_dim and 0 <= y <= self.walls_dim

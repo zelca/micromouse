@@ -122,7 +122,7 @@ class Simulator(object):
 
     def render_robot_data(self):
         """
-        Draws robot's policy and spotted walls.
+        Draws robot's policy, spotted walls and the goal.
         """
 
         for x in range(self.maze.dim):

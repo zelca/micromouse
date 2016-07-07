@@ -37,7 +37,7 @@ if __name__ == '__main__':
     simulator = Simulator(testmaze, testrobot, delay=delay, show_maze=show_maze)
 
     # print estimated score
-    best_score, worst_score = estimate_score(testmaze, init_bounds, goal_bounds)
+    best_score, worst_score = estimate_score(testmaze, init_bounds, goal_bounds, train_score_ratio)
     print "Estimated score is between {:4.3f} and {:4.3f}".format(best_score, worst_score)
 
     # record robot performance over two runs.

@@ -34,10 +34,12 @@ def compute_policy(maze, goal):
         x = cell[0]
         y = cell[1]
         time = value[x][y]
+        # check every direction for the cell
         for heading, move in heading_move.iteritems():
             i = 1
             x2 = x
             y2 = y
+            # move as much as possible before wall is spotted
             while i <= max_movement and maze.is_permissible((x2, y2), heading):
                 x2 += move[0]
                 y2 += move[1]
@@ -52,6 +54,10 @@ def compute_policy(maze, goal):
 
 
 def compute_path(policy, init):
+    """
+    Computes optimal path to reach the goal starting at init point.
+    """
+
     path = []
 
     x, y = init
@@ -65,12 +71,26 @@ def compute_path(policy, init):
     return path
 
 
-def estimate_score(maze, init, goal):
+def estimate_score(maze, init, goal, train_score_ratio):
+    """
+    Estimates score for given maze, inti and goal points.
+
+    Best score is calculated based on assumption that a robots takes
+    optimal path to reach the goal in both runs. And equals
+
+        optimal path time + optimal path time / train_score_ratio
+
+    Worst score - a robot visits all cells during exploration and
+    uses optimal path on second run. So equals
+
+        optimal path time + number of cells / train_score_ratio
+    """
+
     policy = compute_policy(maze, goal)
 
-    _, _, time = policy[init[0]][init[1]]
+    _, _, optimal_time = policy[init[0]][init[1]]
 
-    best_score = time + float(time) / 30
-    worst_score = time + float(maze.dim ** 2) / 30
+    best_score = optimal_time + float(optimal_time) * train_score_ratio
+    worst_score = optimal_time + float(maze.dim ** 2) * train_score_ratio
 
     return best_score, worst_score
