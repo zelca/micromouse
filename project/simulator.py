@@ -129,9 +129,9 @@ class Simulator(object):
             for y in range(self.maze.dim):
                 # policy
                 if self.robot.policy[x][y]:
-                    center = self.center(x, y)
+                    center = self.center((x, y))
                     heading, movement, _ = self.robot.policy[x][y]
-                    color = self.path_color if (x, y) in self.robot.solution else self.policy_color
+                    color = self.path_color if (x, y) in self.robot.path else self.policy_color
                     label = self.font.render(self.heading_label[heading] + "{}".format(movement), 1, color)
                     self.screen.blit(label, [center[0] - label.get_width() / 2, center[1] - label.get_height() / 2])
 
@@ -141,18 +141,30 @@ class Simulator(object):
                         self.render_wall(x, y, heading, self.known_wall_color)
 
         # goal
-        goal_center = self.center(self.robot.goal[0], self.robot.goal[1])
+        goal_center = self.center(self.robot.goal)
         goal_point = goal_center[0] - .3 * self.block_size, goal_center[1] - .3 * self.block_size
         goal_point = [goal_point[0], goal_point[1], .6 * self.block_size, .6 * self.block_size]
         self.game.draw.rect(self.screen, self.finish_color, goal_point, self.line_width)
+
+        # path
+        prev_cell = None
+        for cell in self.robot.path:
+            if prev_cell:
+                p1 = self.center(prev_cell)
+                p2 = self.center(cell)
+                self.game.draw.line(self.screen, self.path_color, p1, p2, self.line_width)
+            prev_cell = cell
+        if prev_cell:
+            p1 = self.center(prev_cell)
+            p2 = self.center(self.robot.goal)
+            self.game.draw.line(self.screen, self.path_color, p1, p2, self.line_width)
 
     def render_robot_shape(self):
         """
         Calculates robots points and draws robot's triangle.
         """
 
-        x, y = self.robot.location
-        center = self.center(x, y)
+        center = self.center(self.robot.location)
         heading = self.robot.heading
         points = []
         for p in self.robot_shape[heading]:
@@ -182,7 +194,7 @@ class Simulator(object):
                                 self.transform(x, y), self.transform(x, y + 1),
                                 self.line_width)
 
-    def center(self, x, y):
+    def center(self, (x, y)):
         """
         Transforms maze coordinates to canvas coordinates of the cell's center.
         """

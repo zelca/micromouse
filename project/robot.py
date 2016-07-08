@@ -12,7 +12,7 @@ class Robot(object):
         self.init = init
         self.goal = finish
 
-        self.solution = []
+        self.path = []
         self.maze = Maze(maze_dim)
         self.policy = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
 
@@ -51,12 +51,12 @@ class Robot(object):
         if self.update_maze(sensors):
             # update policy and solution if maze was updated
             self.policy = compute_policy(self.maze, self.goal)
-            self.solution = compute_path(self.policy, self.init)
+            self.path = compute_path(self.policy, self.init)
 
         if self.mode == 'connecting':
             # during `connecting` phase robot visits all unvisited cells
             # from the solution path and verifies that this path is optimal
-            unvisited = self.last_unvisited(self.solution)
+            unvisited = self.last_unvisited(self.path)
             if unvisited:
                 unvisited_policy = compute_policy(self.maze, unvisited)
                 rotation, movement = self.next_action(unvisited_policy)
