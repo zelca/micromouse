@@ -2,7 +2,9 @@ from policy import *
 
 
 class Robot(object):
-    def __init__(self, maze_dim, init, goal):
+    Exploring, Connecting, Testing = range(3)
+
+    def __init__(self, maze_dim, init, goal_bounds):
         """
         Sets up attributes that a robot will use to learn and navigate the
         maze. Some initial attributes are provided based on common information,
@@ -10,7 +12,7 @@ class Robot(object):
         """
 
         self.init = init
-        self.goal = goal
+        self.goals = [[x, y] for x in goal_bounds for y in goal_bounds]
 
         self.maze = Maze(maze_dim)
 
@@ -18,7 +20,7 @@ class Robot(object):
         self.policy = None
 
         # start `exploring`
-        self.mode = 'exploring'
+        self.mode = Robot.Exploring
         self.heading = 'up'
         self.location = [self.init[0], self.init[1]]
 
@@ -44,32 +46,31 @@ class Robot(object):
         the tester to end the run and return the robot to the start.
         """
 
-        # goal is reached in `exploring` phase, switch to `connecting` phase
-        if self.mode == 'exploring' and self.location == self.goal:
-            self.mode = 'connecting'
-
         # update maze data, based on sensors
         if self.update_maze(sensors):
             # update policy and solution if maze was updated
-            self.policy = compute_policy(self.maze, self.goal)
+            self.policy = compute_policy(self.maze, self.goals)
             self.path = compute_path(self.policy, self.init)
 
-        if self.mode == 'connecting':
+        # goal is reached in `exploring` phase, switch to `connecting` phase
+        if self.mode == Robot.Exploring and self.location in self.goals:
+            self.mode = Robot.Connecting
+
+        if self.mode == Robot.Connecting:
             # during `connecting` phase robot visits all unvisited cells
             # from the solution path and verifies that this path is optimal
-            unvisited = last_unvisited(self.maze, self.path)
+            unvisited = last_unvisited(self.maze, self.path + self.goals)
             if unvisited:
-                unvisited_policy = compute_policy(self.maze, unvisited)
+                unvisited_policy = compute_policy(self.maze, [unvisited])
                 rotation, movement = self.next_action(unvisited_policy)
             else:
                 # if there are no unvisited cells switch to `testing` phase
-                self.mode = 'testing'
+                self.mode = Robot.Testing
                 self.heading = 'up'
                 self.location = [self.init[0], self.init[1]]
                 return 'Reset', 'Reset'
         else:
-            # during `exploring` and `testing` robot uses
-            # policy to reach the goal
+            # during `exploring` and `testing` robot uses policy to reach the goal
             rotation, movement = self.next_action(self.policy)
 
         # update internal state (heading, location) of a robot
@@ -160,7 +161,7 @@ class Maze(object):
 
         return updated
 
-    def is_unvisited(self, cell):
+    def is_visited(self, cell):
         """
         Maps the cell coordinates to wall coordinates and checks
         if a presence of the walls for the specific cell is known.
@@ -171,9 +172,9 @@ class Maze(object):
             x_ = 2 * cell[0] + move[0]
             y_ = 2 * cell[1] + move[1]
             if self.in_bound(x_, y_) and not (x_, y_) in self.walls:
-                return True
+                return False
 
-        return False
+        return True
 
     def is_permissible(self, cell, heading):
         """

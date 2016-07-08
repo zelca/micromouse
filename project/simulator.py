@@ -17,7 +17,8 @@ class Simulator(object):
         'cyan': (0, 200, 200),
         'magenta': (200, 0, 200),
         'yellow': (255, 255, 0),
-        'orange': (255, 128, 0)
+        'orange': (255, 128, 0),
+        'light green': (240, 255, 240)
     }
 
     line_width = 2
@@ -32,15 +33,13 @@ class Simulator(object):
 
     robot_color = colors['blue']
 
-    sensor_color = colors['orange']
-
-    start_color = colors['red']
-
-    finish_color = colors['green']
+    goal_color = colors['green']
 
     hidden_wall_color = colors['gray']
 
     known_wall_color = colors['black']
+
+    visited_color = colors['light green']
 
     heading_label = {'up': 'v',
                      'right': '>',
@@ -54,10 +53,11 @@ class Simulator(object):
         'right': [(.4, 0), (-.4, .2), (-.4, -.2)],
     }
 
-    def __init__(self, maze, robot, delay=None, show_maze=None):
+    def __init__(self, maze, robot, delay=None, show_maze=False, show_policy=True):
         self.maze = maze
         self.robot = robot
         self.show_maze = show_maze
+        self.show_policy = show_policy
 
         self.game = None
         if delay:
@@ -127,50 +127,56 @@ class Simulator(object):
 
         for x in range(self.maze.dim):
             for y in range(self.maze.dim):
+                next_cell = (x, y)
+
+                # visited
+                if self.robot.maze.is_visited(next_cell):
+                    center = self.center(next_cell)
+                    points = [center[0] - .5 * self.block_size, center[1] - .5 * self.block_size,
+                              self.block_size, self.block_size]
+                    self.game.draw.rect(self.screen, self.visited_color, points)
+
                 # policy
-                if self.robot.policy and self.robot.policy[x][y]:
-                    center = self.center((x, y))
+                if self.show_policy and self.robot.policy and self.robot.policy[x][y]:
+                    center = self.center(next_cell)
                     heading, movement, _ = self.robot.policy[x][y]
-                    color = self.path_color if (x, y) in self.robot.path else self.policy_color
+                    color = self.path_color if [x, y] in self.robot.path else self.policy_color
                     label = self.font.render(self.heading_label[heading] + "{}".format(movement), 1, color)
                     self.screen.blit(label, [center[0] - label.get_width() / 2, center[1] - label.get_height() / 2])
 
                 # walls
                 for heading in self.heading_label:
-                    if not self.robot.maze.is_permissible((x, y), heading):
+                    if not self.robot.maze.is_permissible(next_cell, heading):
                         self.render_wall(x, y, heading, self.known_wall_color)
 
         # goal
-        goal_center = self.center(self.robot.goal)
-        goal_point = goal_center[0] - .3 * self.block_size, goal_center[1] - .3 * self.block_size
-        goal_point = [goal_point[0], goal_point[1], .6 * self.block_size, .6 * self.block_size]
-        self.game.draw.rect(self.screen, self.finish_color, goal_point, self.line_width)
+        for goal in self.robot.goals:
+            center = self.center(goal)
+            points = [center[0] - .5 * self.block_size, center[1] - .5 * self.block_size,
+                      self.block_size, self.block_size]
+            self.game.draw.rect(self.screen, self.goal_color, points)
 
         # path
-        prev_cell = None
-        for cell in self.robot.path:
-            if prev_cell:
-                p1 = self.center(prev_cell)
-                p2 = self.center(cell)
+        cell = None
+        for next_cell in self.robot.path:
+            if cell:
+                p1 = self.center(cell)
+                p2 = self.center(next_cell)
                 self.game.draw.line(self.screen, self.path_color, p1, p2, self.line_width)
-            prev_cell = cell
-        if prev_cell:
-            p1 = self.center(prev_cell)
-            p2 = self.center(self.robot.goal)
-            self.game.draw.line(self.screen, self.path_color, p1, p2, self.line_width)
+            cell = next_cell
 
     def render_robot_shape(self):
         """
         Calculates robots points and draws robot's triangle.
         """
 
-        center = self.center(self.robot.location)
-        heading = self.robot.heading
         points = []
+        heading = self.robot.heading
+        center = self.center(self.robot.location)
         for p in self.robot_shape[heading]:
             points.append((center[0] + p[0] * self.block_size, center[1] + p[1] * self.block_size))
 
-        self.game.draw.lines(self.screen, self.robot_color, True, points, self.line_width)
+        self.game.draw.polygon(self.screen, self.robot_color, points)
 
     def render_wall(self, x, y, side, color):
         """

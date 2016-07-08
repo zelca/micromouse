@@ -22,11 +22,11 @@ if __name__ == '__main__':
 
     # create a maze based on input argument on command line.
     testmaze = Maze(str(sys.argv[1]))
-    init_bounds = [0, 0]
+    init = [0, 0]
     goal_bounds = [testmaze.dim / 2 - 1, testmaze.dim / 2]
 
     # initialize a robot; robot receives info about maze dimensions.
-    testrobot = Robot(testmaze.dim, init_bounds, goal_bounds)
+    testrobot = Robot(testmaze.dim, init, goal_bounds)
 
     # create a simulator to display maze and robot movements.
     # set delay to None to disable simulator.
@@ -36,10 +36,10 @@ if __name__ == '__main__':
     show_maze = False
     if len(sys.argv) > 3:
         show_maze = bool(sys.argv[3])
-    simulator = Simulator(testmaze, testrobot, delay=delay, show_maze=show_maze)
+    simulator = Simulator(testmaze, testrobot, delay=delay, show_maze=show_maze, show_policy=False)
 
     # print estimated score
-    best_score, worst_score = estimate_score(testmaze, init_bounds, goal_bounds, train_score_ratio)
+    best_score, worst_score = estimate_score(testmaze, init, goal_bounds, train_score_ratio)
     print "Estimated score is between {:4.3f} and {:4.3f}".format(best_score, worst_score)
 
     # record robot performance over two runs.
@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
         # set the robot in the start position. Note that robot position
         # parameters are independent of the robot itself.
-        robot_pos = {'location': [init_bounds[0], init_bounds[1]], 'heading': 'up'}
+        robot_pos = {'location': [init[0], init[1]], 'heading': 'up'}
 
         run_active = True
         hit_goal = False
