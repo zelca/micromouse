@@ -128,7 +128,7 @@ class Simulator(object):
         for x in range(self.maze.dim):
             for y in range(self.maze.dim):
                 # policy
-                if self.robot.policy[x][y]:
+                if self.robot.policy and self.robot.policy[x][y]:
                     center = self.center((x, y))
                     heading, movement, _ = self.robot.policy[x][y]
                     color = self.path_color if (x, y) in self.robot.path else self.policy_color

@@ -2,7 +2,7 @@ from policy import *
 
 
 class Robot(object):
-    def __init__(self, maze_dim, init, finish):
+    def __init__(self, maze_dim, init, goal):
         """
         Sets up attributes that a robot will use to learn and navigate the
         maze. Some initial attributes are provided based on common information,
@@ -10,11 +10,12 @@ class Robot(object):
         """
 
         self.init = init
-        self.goal = finish
+        self.goal = goal
+
+        self.maze = Maze(maze_dim)
 
         self.path = []
-        self.maze = Maze(maze_dim)
-        self.policy = [[None for _ in range(maze_dim)] for _ in range(maze_dim)]
+        self.policy = None
 
         # start `exploring`
         self.mode = 'exploring'
@@ -56,7 +57,7 @@ class Robot(object):
         if self.mode == 'connecting':
             # during `connecting` phase robot visits all unvisited cells
             # from the solution path and verifies that this path is optimal
-            unvisited = self.last_unvisited(self.path)
+            unvisited = last_unvisited(self.maze, self.path)
             if unvisited:
                 unvisited_policy = compute_policy(self.maze, unvisited)
                 rotation, movement = self.next_action(unvisited_policy)
@@ -131,18 +132,6 @@ class Robot(object):
 
         return updated
 
-    def last_unvisited(self, solution):
-        """
-        Finds the last unvisited cell from the solution path.
-        Returns None if all cells are visited.
-        """
-
-        for cell in reversed(solution):
-            if not self.maze.is_visited(cell):
-                return cell
-
-        return None
-
 
 class Maze(object):
     """
@@ -171,7 +160,7 @@ class Maze(object):
 
         return updated
 
-    def is_visited(self, cell):
+    def is_unvisited(self, cell):
         """
         Maps the cell coordinates to wall coordinates and checks
         if a presence of the walls for the specific cell is known.
@@ -182,9 +171,9 @@ class Maze(object):
             x_ = 2 * cell[0] + move[0]
             y_ = 2 * cell[1] + move[1]
             if self.in_bound(x_, y_) and not (x_, y_) in self.walls:
-                return False
+                return True
 
-        return True
+        return False
 
     def is_permissible(self, cell, heading):
         """

@@ -71,6 +71,20 @@ def compute_path(policy, init):
     return path
 
 
+def last_unvisited(maze, path):
+    """
+    Finds the last unvisited cell from the path.
+
+    Returns None if all cells are visited or path is empty.
+    """
+
+    for cell in reversed(path):
+        if maze.is_unvisited(cell):
+            return cell
+
+    return None
+
+
 def estimate_score(maze, init, goal, train_score_ratio):
     """
     Estimates score for given maze, inti and goal points.
