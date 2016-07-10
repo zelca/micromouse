@@ -18,7 +18,8 @@ class Simulator(object):
         'magenta': (200, 0, 200),
         'yellow': (255, 255, 0),
         'orange': (255, 128, 0),
-        'light green': (240, 255, 240)
+        'light green': (240, 255, 240),
+        'light yellow': (255, 255, 150)
     }
 
     line_width = 2
@@ -33,7 +34,7 @@ class Simulator(object):
 
     robot_color = colors['blue']
 
-    goal_color = colors['green']
+    goal_color = colors['light yellow']
 
     hidden_wall_color = colors['gray']
 

@@ -28,7 +28,7 @@ def compute_policy(maze, goals):
     policy = [[None for _ in range(maze.dim)] for _ in range(maze.dim)]
 
     rest = []
-    for goal in reversed(goals):
+    for goal in goals:
         rest.append(goal)
         value[goal[0]][goal[1]] = 0
     while len(rest) > 0:
