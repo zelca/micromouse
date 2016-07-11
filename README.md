@@ -77,6 +77,7 @@ the first run. A maximum of one thousand time steps are allotted to complete bot
 
 * *tester.py* - This script will be run to test the robot’s ability to navigate mazes.
 * *robot.py* - This script establishes the robot class that implements *next_move* function.
+* *policy.py* - This file contains helper functions to calculate optimal policy and path.
 * *simulator.py* - This script can be used to visualize the maze and robot's data.
 * *maze.py* - This script contains functions for loading the maze and for checking for walls upon sensing.
 * *maze/test_maze_##.txt* - These files provide sample mazes to test the robot.
