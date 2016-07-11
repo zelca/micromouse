@@ -16,6 +16,8 @@ class Maze(object):
         wall positioning.
         """
 
+        self.filename = filename
+
         with open(filename, 'rb') as f_in:
 
             # first line should be an integer with the maze dimensions

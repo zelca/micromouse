@@ -17,6 +17,7 @@ class Robot(object):
         self.maze = Maze(maze_dim)
 
         self.path = []
+        self.optimal = []
         self.policy = None
 
         # start `exploring`
@@ -50,31 +51,34 @@ class Robot(object):
         if self.update_maze(sensors):
             # update policy and solution if maze was updated
             self.policy = compute_policy(self.maze, self.goals)
-            self.path = compute_path(self.policy, self.init)
+            self.optimal = compute_path(self.policy, self.init)
 
         # goal is reached in `exploring` phase, switch to `connecting` phase
         if self.mode == Robot.Exploring and self.location in self.goals:
             self.mode = Robot.Connecting
 
+        current_policy = self.policy
         if self.mode == Robot.Connecting:
             # during `connecting` phase robot visits all unvisited cells
             # from the solution path and verifies that this path is optimal
             unvisited = last_unvisited(self.maze, self.path + self.goals)
             if unvisited:
-                unvisited_policy = compute_policy(self.maze, [unvisited])
-                rotation, movement = self.next_action(unvisited_policy)
+                current_policy = compute_policy(self.maze, [unvisited])
             else:
                 # if there are no unvisited cells switch to `testing` phase
                 self.mode = Robot.Testing
                 self.heading = 'up'
                 self.location = [self.init[0], self.init[1]]
                 return 'Reset', 'Reset'
-        else:
-            # during `exploring` and `testing` robot uses policy to reach the goal
-            rotation, movement = self.next_action(self.policy)
+
+        # find next rotation and movement, based on policy
+        rotation, movement = self.next_action(current_policy)
 
         # update internal state (heading, location) of a robot
         self.update_state(sensors, rotation, movement)
+
+        # update current path for visualization
+        self.path = compute_path(current_policy, self.location)
 
         return rotations[rotation], movement
 
@@ -106,7 +110,7 @@ class Robot(object):
         # update heading
         self.heading = heading_rotation[self.heading][rotation]
 
-        # check for wall
+        # check for a wall
         movement = min(sensors[rotation], movement)
 
         # update position
@@ -175,6 +179,17 @@ class Maze(object):
                 return False
 
         return True
+
+    def is_defined(self, cell, heading):
+        """
+        Maps the cell coordinates to wall coordinates and checks
+        if a presence of the walls for the specific cell is known.
+        """
+
+        move = heading_move[heading]
+        x_ = 2 * cell[0] + move[0]
+        y_ = 2 * cell[1] + move[1]
+        return not self.in_bound(x_, y_) or (x_, y_) in self.walls
 
     def is_permissible(self, cell, heading):
         """

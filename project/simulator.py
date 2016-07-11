@@ -28,7 +28,9 @@ class Simulator(object):
 
     maze_color = colors['white']
 
-    path_color = colors['red']
+    path_color = colors['green']
+
+    optimal_color = colors['red']
 
     policy_color = colors['cyan']
 
@@ -67,6 +69,7 @@ class Simulator(object):
                 self.game.init()
                 size = maze.dim * self.block_size + (maze.dim + 1) * self.line_width
                 self.screen = self.game.display.set_mode((size, size))
+                self.game.display.set_caption("Micromouse: " + self.maze.filename)
                 self.font = self.game.font.Font(None, 20)
                 self.frame_delay = max(1, delay)  # delay between frames in ms (min: 1)
             except Exception as e:
@@ -141,7 +144,7 @@ class Simulator(object):
                 if self.show_policy and self.robot.policy and self.robot.policy[x][y]:
                     center = self.center(next_cell)
                     heading, movement, _ = self.robot.policy[x][y]
-                    color = self.path_color if [x, y] in self.robot.path else self.policy_color
+                    color = self.optimal_color if [x, y] in self.robot.optimal else self.policy_color
                     label = self.font.render(self.heading_label[heading] + "{}".format(movement), 1, color)
                     self.screen.blit(label, [center[0] - label.get_width() / 2, center[1] - label.get_height() / 2])
 
@@ -157,14 +160,11 @@ class Simulator(object):
                       self.block_size, self.block_size]
             self.game.draw.rect(self.screen, self.goal_color, points)
 
-        # path
-        cell = None
-        for next_cell in self.robot.path:
-            if cell:
-                p1 = self.center(cell)
-                p2 = self.center(next_cell)
-                self.game.draw.line(self.screen, self.path_color, p1, p2, self.line_width)
-            cell = next_cell
+        # optimal path
+        self.render_path(self.robot.optimal, self.optimal_color)
+
+        # current path
+        self.render_path(self.robot.path, self.path_color)
 
     def render_robot_shape(self):
         """
@@ -178,6 +178,19 @@ class Simulator(object):
             points.append((center[0] + p[0] * self.block_size, center[1] + p[1] * self.block_size))
 
         self.game.draw.polygon(self.screen, self.robot_color, points)
+
+    def render_path(self, path, color):
+        """
+        Draws the path in given color.
+        """
+
+        cell = None
+        for next_cell in path:
+            if cell:
+                p1 = self.center(cell)
+                p2 = self.center(next_cell)
+                self.game.draw.line(self.screen, color, p1, p2, self.line_width)
+            cell = next_cell
 
     def render_wall(self, x, y, side, color):
         """
