@@ -61,7 +61,7 @@ class Robot(object):
         if self.mode == Robot.Connecting:
             # during `connecting` phase robot visits all unvisited cells
             # from the solution path and verifies that this path is optimal
-            unvisited = last_unvisited(self.maze, self.path + self.goals)
+            unvisited = last_unvisited(self.maze, self.optimal + self.goals)
             if unvisited:
                 current_policy = compute_policy(self.maze, [unvisited])
             else:
