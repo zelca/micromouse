@@ -2,7 +2,7 @@ from policy import *
 
 
 class Robot(object):
-    Exploring, Connecting, Testing = range(3)
+    Exploring, Validating, Testing = range(3)
 
     def __init__(self, maze_dim, init, goal_bounds):
         """
@@ -55,10 +55,10 @@ class Robot(object):
 
         # goal is reached in `exploring` phase, switch to `connecting` phase
         if self.mode == Robot.Exploring and self.location in self.goals:
-            self.mode = Robot.Connecting
+            self.mode = Robot.Validating
 
         current_policy = self.policy
-        if self.mode == Robot.Connecting:
+        if self.mode == Robot.Validating:
             # during `connecting` phase robot visits all unvisited cells
             # from the solution path and verifies that this path is optimal
             unvisited = last_unvisited(self.maze, self.optimal + self.goals)

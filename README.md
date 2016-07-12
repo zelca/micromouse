@@ -33,7 +33,7 @@ number 10 means that a square is open on the left and right, with walls on top a
 Note that, due to array indexing, the first data row in the text file corresponds with the leftmost column in the maze,
 its first element being the starting square (bottom-left) corner of the maze.
 
-![maze example](resources/maze_example.png)
+![maze example](resources/maze-example.png)
 
 ###Robot Specifications
 
@@ -124,4 +124,4 @@ runs test_maze_03.txt with both maze and robot's data visualization.
 
 ##Additional Information
 
-Detailed information about implementation and algorithm used can be found in [project report](report.md).
+Detailed information about implementation and algorithm used can be found in [the project report](REPORT.md).
