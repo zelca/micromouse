@@ -71,7 +71,7 @@ the first run. A maximum of one thousand time steps are allotted to complete bot
     
 * Python 2.7.X
 * Numpy
-* PyGame (optional, used for visualization)
+* PyGame (optional, used for the visualization)
 
 ###Files
 
@@ -84,7 +84,7 @@ the first run. A maximum of one thousand time steps are allotted to complete bot
 
 ###Command Line Parameters
 
-To run test use following command line:
+To run test use the following command line:
 
 ```
 python tester.py {path to maze file}
